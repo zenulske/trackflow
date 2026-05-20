@@ -20,7 +20,13 @@
     </span>
     <div>
       <h1 class="fw-bold mb-0">{data.bereich.name}</h1>
-      <p class="text-muted mb-0 small">Ziel: {data.bereich.ziel || '—'}</p>
+      {#if data.bereich.zielAnzahl}
+        <p class="text-muted mb-0 small">
+          Ziel: {data.bereich.zielAnzahl} Einträge / {data.bereich.zielZeitraum === 'monat' ? 'Monat' : 'Woche'}
+        </p>
+      {:else}
+        <p class="text-muted mb-0 small">Kein Ziel definiert</p>
+      {/if}
     </div>
   </div>
   <div class="d-flex gap-2">
@@ -30,12 +36,34 @@
     {#if bestaetigen}
       <button class="btn btn-danger btn-sm" onclick={loeschen}>Wirklich löschen?</button>
     {:else}
-      <button class="btn btn-outline-danger btn-sm" onclick={loeschen}>
+      <button class="btn btn-outline-danger btn-sm" onclick={() => bestaetigen = true}>
         <i class="bi bi-trash"></i>
       </button>
     {/if}
   </div>
 </div>
+
+<!-- Fortschritt dieser Periode -->
+{#if data.bereich.zielAnzahl}
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="fw-medium">
+          Fortschritt diese {data.bereich.zielZeitraum === 'monat' ? 'Monat' : 'Woche'}
+        </span>
+        <span class="fw-bold" style="color:{data.bereich.farbe};">
+          {data.fortschritt.aktuell} / {data.bereich.zielAnzahl}
+        </span>
+      </div>
+      <div class="progress mb-1" style="height:8px;">
+        <div class="progress-bar" role="progressbar"
+             style="width:{data.fortschritt.prozent}%;background:{data.bereich.farbe};">
+        </div>
+      </div>
+      <div class="text-muted small">{data.fortschritt.prozent}% erreicht</div>
+    </div>
+  </div>
+{/if}
 
 <!-- Stats -->
 <div class="row g-3 mb-4">

@@ -9,7 +9,8 @@
     {farbe:'#7A6A00',hell:'#FBF5CC'},{farbe:'#A0296B',hell:'#F9E0EE'},
   ];
 
-  let name = '', icon = icons[0], gewaehlt = farben[0], ziel = '';
+  let name = '', icon = icons[0], gewaehlt = farben[0];
+  let zielAnzahl = '', zielZeitraum = 'woche';
   let laden = false, fehler = '';
 
   async function speichern() {
@@ -18,12 +19,18 @@
     laden = true;
     const res = await fetch('/api/bereiche', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ name, icon, farbe: gewaehlt.farbe, farbeHell: gewaehlt.hell, ziel })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name, icon,
+        farbe:     gewaehlt.farbe,
+        farbeHell: gewaehlt.hell,
+        zielAnzahl: zielAnzahl ? parseInt(zielAnzahl) : null,
+        zielZeitraum
+      })
     });
     laden = false;
     if (res.ok) goto('/dashboard');
-    else fehler = 'Fehler beim Speichern. Bitte erneut versuchen.';
+    else fehler = 'Fehler beim Speichern.';
   }
 </script>
 
@@ -43,7 +50,7 @@
     <div class="mb-3">
       <label for="name" class="form-label fw-medium small">Name *</label>
       <input id="name" type="text" class="form-control" bind:value={name}
-             placeholder="z.B. Sprachen, Finanzen, Kreativität…" />
+             placeholder="z.B. Sport, Lernen, Karriere…" />
     </div>
 
     <div class="mb-3">
@@ -78,10 +85,16 @@
       <span class="fw-semibold" style="color:{gewaehlt.farbe};">{name || 'Neuer Bereich'}</span>
     </div>
 
-    <div class="mb-4">
-      <label for="ziel" class="form-label fw-medium small">Ziel (optional)</label>
-      <input id="ziel" type="text" class="form-control" bind:value={ziel}
-             placeholder="z.B. 5 Einheiten / Woche" />
+    <!-- Ziel -->
+    <label class="form-label fw-medium small">Ziel (optional)</label>
+    <div class="input-group mb-4">
+      <input type="number" class="form-control" bind:value={zielAnzahl}
+             placeholder="z.B. 5" min="1" />
+      <span class="input-group-text">Einträge pro</span>
+      <select class="form-select" bind:value={zielZeitraum} style="max-width:120px;">
+        <option value="woche">Woche</option>
+        <option value="monat">Monat</option>
+      </select>
     </div>
 
     <div class="d-flex gap-2 justify-content-end">

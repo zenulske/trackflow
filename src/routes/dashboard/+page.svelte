@@ -1,10 +1,6 @@
 <script>
   import BereichKarte from '$lib/components/BereichKarte.svelte';
   let { data } = $props();
-
-  function eintraegeProBereich(id) {
-    return data.eintraege.filter(e => e.bereichId === id).length;
-  }
 </script>
 
 <svelte:head><title>Dashboard – TrackFlow</title></svelte:head>
@@ -32,18 +28,15 @@
 {:else}
   <div class="row g-3 mb-4">
     {#each data.bereiche as bereich}
+      {@const f = data.fortschritt[bereich._id] ?? { aktuell: 0, prozent: 0 }}
       <div class="col-md-4">
-        <BereichKarte
-          {bereich}
-          wert={eintraegeProBereich(bereich._id).toString()}
-          einheit="Einträge"
-          fortschritt={Math.min(eintraegeProBereich(bereich._id) * 10, 100)}
-        />
+        <BereichKarte {bereich} aktuell={f.aktuell} fortschritt={f.prozent} />
       </div>
     {/each}
     <div class="col-md-4">
-      <a href="/bereiche/neu" class="card border-dashed h-100 text-decoration-none d-flex align-items-center justify-content-center text-muted"
-         style="min-height:140px; border:2px dashed #dee2e6 !important;">
+      <a href="/bereiche/neu"
+         class="card border-dashed h-100 text-decoration-none d-flex align-items-center justify-content-center text-muted"
+         style="min-height:160px;border:2px dashed #dee2e6 !important;">
         <div class="text-center">
           <i class="bi bi-plus-circle fs-3 mb-2 d-block"></i>
           <span class="small">Neuen Bereich erstellen</span>
@@ -53,7 +46,9 @@
   </div>
 
   {#if data.eintraege.length > 0}
-    <h6 class="text-uppercase text-muted fw-semibold mb-3" style="font-size:11px;letter-spacing:.08em;">Letzte Aktivitäten</h6>
+    <h6 class="text-uppercase text-muted fw-semibold mb-3" style="font-size:11px;letter-spacing:.08em;">
+      Letzte Aktivitäten
+    </h6>
     <div class="card border-0 shadow-sm">
       <ul class="list-group list-group-flush">
         {#each data.eintraege as e}

@@ -3,72 +3,67 @@
   let { bereiche = [], user = null } = $props();
 </script>
 
-<nav class="sidebar d-flex flex-column p-3 bg-white border-end"
-     style="width:240px; position:fixed; height:100vh; overflow-y:auto;">
+<nav class="d-flex flex-column p-3 bg-white border-end"
+     style="width:250px; position:fixed; top:0; left:0; height:100vh; overflow-y:auto; z-index:100;">
 
-  <a href="/dashboard" class="d-flex align-items-center gap-2 mb-4 text-decoration-none text-dark">
-    <div class="logo-mark">TF</div>
-    <span class="fw-semibold fs-5">TrackFlow</span>
+  <a href="/dashboard" class="d-flex align-items-center gap-2 mb-4 text-decoration-none">
+    <div class="rounded-3 d-flex align-items-center justify-content-center fw-bold text-white"
+         style="width:36px;height:36px;background:#212529;font-size:13px;">TF</div>
+    <span class="fw-semibold fs-5 text-dark">TrackFlow</span>
   </a>
 
-  <small class="text-uppercase text-muted fw-semibold mb-1 px-2">Übersicht</small>
-  <a href="/dashboard" class="nav-link rounded mb-1 px-2 py-2"
-     class:active={$page.url.pathname === '/dashboard'}>
-    ⊞ Dashboard
+  <small class="text-uppercase text-muted fw-semibold px-2 mb-1" style="font-size:10px;letter-spacing:.08em;">Übersicht</small>
+  <a href="/dashboard"
+     class="d-flex align-items-center gap-2 px-2 py-2 rounded text-decoration-none mb-1 nav-link-item"
+     class:aktiv={$page.url.pathname === '/dashboard'}>
+    <i class="bi bi-grid"></i> Dashboard
   </a>
 
-  <small class="text-uppercase text-muted fw-semibold mb-1 mt-3 px-2">Meine Bereiche</small>
-  {#each bereiche as bereich}
-    <a href="/bereiche/{bereich._id}" class="nav-link rounded mb-1 px-2 py-2 d-flex align-items-center gap-2"
-       class:active={$page.url.pathname === `/bereiche/${bereich._id}`}>
-      <span class="icon-badge" style="background:{bereich.farbeHell}">{bereich.icon}</span>
-      {bereich.name}
+  <small class="text-uppercase text-muted fw-semibold px-2 mb-1 mt-3" style="font-size:10px;letter-spacing:.08em;">Meine Bereiche</small>
+  {#each bereiche as b}
+    <a href="/bereiche/{b._id}"
+       class="d-flex align-items-center gap-2 px-2 py-2 rounded text-decoration-none mb-1 nav-link-item"
+       class:aktiv={$page.url.pathname === `/bereiche/${b._id}`}>
+      <span class="rounded-2 d-flex align-items-center justify-content-center"
+            style="width:26px;height:26px;background:{b.farbeHell};font-size:14px;">{b.icon}</span>
+      {b.name}
     </a>
   {/each}
 
-  <a href="/bereiche/neu" class="nav-link rounded mb-1 px-2 py-2 text-muted">
-    <span class="icon-badge-dashed">+</span> Bereich hinzufügen
+  <a href="/bereiche/neu"
+     class="d-flex align-items-center gap-2 px-2 py-2 rounded text-decoration-none mb-1 text-secondary nav-link-item">
+    <span class="rounded-2 d-flex align-items-center justify-content-center"
+          style="width:26px;height:26px;border:1.5px dashed #ccc;font-size:18px;">+</span>
+    Bereich hinzufügen
   </a>
 
-  <a href="/eintrag/neu" class="btn btn-dark mt-2 d-flex align-items-center gap-2">
-    <span>+</span> Eintrag hinzufügen
+  <a href="/eintrag/neu" class="btn btn-dark d-flex align-items-center justify-content-center gap-2 mt-3">
+    <i class="bi bi-plus-lg"></i> Eintrag hinzufügen
   </a>
 
   <div class="mt-auto pt-3 border-top">
-    {#if user}
-      <div class="d-flex align-items-center gap-2 px-2 mb-2">
-        <div class="avatar">{user.name?.charAt(0).toUpperCase()}</div>
-        <div>
-          <div class="fw-medium small">{user.name}</div>
-          <div class="text-muted" style="font-size:11px">{user.email}</div>
-        </div>
+    <a href="/profil"
+       class="d-flex align-items-center gap-2 px-2 py-2 rounded text-decoration-none mb-2 nav-link-item"
+       class:aktiv={$page.url.pathname === '/profil'}>
+      <div class="rounded-circle bg-light d-flex align-items-center justify-content-center fw-semibold flex-shrink-0"
+           style="width:32px;height:32px;">
+        {user?.name?.charAt(0).toUpperCase()}
       </div>
-      <form method="POST" action="/logout">
-        <button class="btn btn-outline-secondary btn-sm w-100">Abmelden</button>
-      </form>
-    {/if}
+      <div class="overflow-hidden">
+        <div class="fw-medium small text-truncate text-dark">{user?.name}</div>
+        <div class="text-muted text-truncate" style="font-size:11px;">{user?.email}</div>
+      </div>
+    </a>
+    <form method="POST" action="/logout">
+      <button class="btn btn-outline-secondary btn-sm w-100">
+        <i class="bi bi-box-arrow-right me-1"></i> Abmelden
+      </button>
+    </form>
   </div>
 </nav>
 
 <style>
-  .logo-mark {
-    width:34px; height:34px; background:#1C1B18; border-radius:9px;
-    display:flex; align-items:center; justify-content:center;
-    color:white; font-weight:600; font-size:13px;
-  }
-  .nav-link { color: #6A6860; }
-  .nav-link:hover, .nav-link.active { background: #EEECEA; color: #1C1B18; }
-  .icon-badge {
-    width:26px; height:26px; border-radius:6px;
-    display:inline-flex; align-items:center; justify-content:center; font-size:14px;
-  }
-  .icon-badge-dashed {
-    width:26px; height:26px; border-radius:6px;
-    display:inline-flex; align-items:center; justify-content:center;
-    border: 1.5px dashed rgba(0,0,0,0.2); font-size:16px;
-  }
-  .avatar {
-    width:32px; height:32px; background:#EEECEA; border-radius:50%;
-    display:flex; align-items:center; justify-content:center; font-weight:600;
-  }
+  .nav-link-item { color: #6c757d; font-size: 13px; font-weight: 500; transition: background .1s; }
+  .nav-link-item:hover { background: #f1f3f5; color: #212529; }
+  .nav-link-item.aktiv { background: #f1f3f5; color: #212529; }
 </style>
