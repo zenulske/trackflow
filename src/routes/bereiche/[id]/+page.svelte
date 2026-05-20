@@ -1,12 +1,10 @@
 <script>
   import { goto } from '$app/navigation';
-  import Benachrichtigung from '$lib/components/Benachrichtigung.svelte';
   let { data } = $props();
+  let bestaetigen = false;
 
-  let loeschenBestaetigt = false;
-
-  async function bereichLoeschen() {
-    if (!loeschenBestaetigt) { loeschenBestaetigt = true; return; }
+  async function loeschen() {
+    if (!bestaetigen) { bestaetigen = true; return; }
     await fetch(`/api/bereiche/${data.bereich._id}`, { method: 'DELETE' });
     goto('/dashboard');
   }
@@ -14,77 +12,78 @@
 
 <svelte:head><title>{data.bereich.name} – TrackFlow</title></svelte:head>
 
-<div class="header">
-  <div>
-    <h1>{data.bereich.icon} {data.bereich.name}</h1>
-    <p class="subtitle">Ziel: {data.bereich.ziel || '—'}</p>
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <span class="rounded-3 d-flex align-items-center justify-content-center"
+          style="width:48px;height:48px;background:{data.bereich.farbeHell};font-size:26px;">
+      {data.bereich.icon}
+    </span>
+    <div>
+      <h1 class="fw-bold mb-0">{data.bereich.name}</h1>
+      <p class="text-muted mb-0 small">Ziel: {data.bereich.ziel || '—'}</p>
+    </div>
   </div>
-  <div class="actions">
-    <a href="/eintrag/neu" class="btn-sec">+ Eintrag</a>
-    {#if loeschenBestaetigt}
-      <button class="btn-danger" on:click={bereichLoeschen}>Wirklich löschen?</button>
+  <div class="d-flex gap-2">
+    <a href="/eintrag/neu" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i> Eintrag
+    </a>
+    {#if bestaetigen}
+      <button class="btn btn-danger btn-sm" onclick={loeschen}>Wirklich löschen?</button>
     {:else}
-      <button class="btn-danger-soft" on:click={() => loeschenBestaetigt = true}>Löschen</button>
+      <button class="btn btn-outline-danger btn-sm" onclick={loeschen}>
+        <i class="bi bi-trash"></i>
+      </button>
     {/if}
   </div>
 </div>
 
-<div class="stats-grid">
-  <div class="stat-card">
-    <p class="stat-label">Einträge total</p>
-    <p class="stat-wert">{data.eintraege.length}</p>
+<!-- Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="fw-bold fs-3">{data.eintraege.length}</div>
+      <div class="text-muted small">Einträge total</div>
+    </div>
   </div>
-  <div class="stat-card">
-    <p class="stat-label">Gesamtdauer</p>
-    <p class="stat-wert">{Math.round(data.eintraege.reduce((s,e) => s + (e.dauer||0), 0) / 60 * 10)/10} <span>h</span></p>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="fw-bold fs-3">
+        {Math.round(data.eintraege.reduce((s,e) => s+(e.dauer||0),0)/60*10)/10}
+      </div>
+      <div class="text-muted small">Stunden total</div>
+    </div>
   </div>
 </div>
 
-<div class="card">
-  <div class="section-header">
-    <h2>Einträge</h2>
-    <a href="/eintrag/neu" class="btn-sec" style="font-size:12px; padding:6px 12px;">+ Neu</a>
-  </div>
+<!-- Einträge -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h6 class="text-uppercase text-muted fw-semibold mb-0" style="font-size:11px;letter-spacing:.08em;">Einträge</h6>
+  <a href="/eintrag/neu" class="btn btn-dark btn-sm">
+    <i class="bi bi-plus-lg me-1"></i> Neu
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm">
   {#if data.eintraege.length === 0}
-    <p class="leer">Noch keine Einträge. <a href="/eintrag/neu">Ersten Eintrag hinzufügen →</a></p>
+    <div class="card-body text-center py-5 text-muted">
+      <i class="bi bi-journal-plus fs-3 d-block mb-2"></i>
+      Noch keine Einträge.
+      <a href="/eintrag/neu" class="d-block mt-2 text-dark fw-medium">Ersten Eintrag hinzufügen →</a>
+    </div>
   {:else}
-    {#each data.eintraege as eintrag}
-      <div class="eintrag">
-        <div>
-          <p class="eintrag-titel">{eintrag.titel}</p>
-          {#if eintrag.notizen}<p class="eintrag-notizen">{eintrag.notizen}</p>{/if}
-        </div>
-        <div style="text-align:right">
-          <p class="eintrag-datum">{new Date(eintrag.datum).toLocaleDateString('de-CH')}</p>
-          {#if eintrag.dauer}<p class="eintrag-dauer">{eintrag.dauer} min</p>{/if}
-        </div>
-      </div>
-    {/each}
+    <ul class="list-group list-group-flush">
+      {#each data.eintraege as e}
+        <li class="list-group-item d-flex justify-content-between align-items-start py-3">
+          <div>
+            <div class="fw-medium">{e.titel}</div>
+            {#if e.notizen}<div class="text-muted small">{e.notizen}</div>{/if}
+          </div>
+          <div class="text-end text-nowrap ms-3">
+            <div class="text-muted small">{new Date(e.datum).toLocaleDateString('de-CH')}</div>
+            {#if e.dauer}<div class="text-muted" style="font-size:11px;">{e.dauer} min</div>{/if}
+          </div>
+        </li>
+      {/each}
+    </ul>
   {/if}
 </div>
-
-<style>
-  .header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px; }
-  h1 { font-size:26px; font-weight:600; letter-spacing:-0.5px; }
-  .subtitle { color:#6A6860; margin-top:4px; font-size:14px; }
-  .actions { display:flex; gap:8px; align-items:center; }
-  .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
-  .stat-card { background:white; border:0.5px solid rgba(0,0,0,0.07); border-radius:12px; padding:16px 18px; }
-  .stat-label { font-size:11px; color:#6A6860; margin-bottom:6px; }
-  .stat-wert { font-size:28px; font-weight:600; letter-spacing:-1px; }
-  .stat-wert span { font-size:14px; font-weight:400; color:#6A6860; }
-  .card { background:white; border:0.5px solid rgba(0,0,0,0.07); border-radius:12px; padding:20px 24px; }
-  .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
-  h2 { font-size:11px; font-weight:600; color:#9A9890; text-transform:uppercase; letter-spacing:0.07em; }
-  .leer { color:#9A9890; font-size:13px; padding:12px 0; }
-  .leer a { color:#1C1B18; }
-  .eintrag { display:flex; justify-content:space-between; padding:12px 0; border-bottom:0.5px solid rgba(0,0,0,0.07); }
-  .eintrag:last-child { border-bottom:none; }
-  .eintrag-titel { font-size:14px; font-weight:500; }
-  .eintrag-notizen { font-size:12px; color:#6A6860; margin-top:2px; }
-  .eintrag-datum { font-size:11px; color:#9A9890; }
-  .eintrag-dauer { font-size:11px; color:#9A9890; margin-top:2px; }
-  .btn-sec { padding:8px 16px; background:white; border:0.5px solid rgba(0,0,0,0.13); border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; text-decoration:none; color:#1C1B18; }
-  .btn-danger { padding:8px 14px; background:#A32D2D; color:white; border:none; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit; }
-  .btn-danger-soft { padding:8px 14px; background:none; border:0.5px solid #F09595; border-radius:8px; font-size:13px; color:#A32D2D; cursor:pointer; font-family:inherit; }
-</style>

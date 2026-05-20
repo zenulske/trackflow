@@ -2,83 +2,79 @@
   import BereichKarte from '$lib/components/BereichKarte.svelte';
   let { data } = $props();
 
-  // Einträge pro Bereich zählen
-  function eintraegeProBereich(bereichId) {
-    return data.eintraege.filter(e => e.bereichId === bereichId).length;
+  function eintraegeProBereich(id) {
+    return data.eintraege.filter(e => e.bereichId === id).length;
   }
 </script>
 
 <svelte:head><title>Dashboard – TrackFlow</title></svelte:head>
 
-<div class="header">
+<div class="d-flex justify-content-between align-items-start mb-4">
   <div>
-    <h1>Dashboard</h1>
-    <p class="subtitle">Dein Fortschritt im Überblick</p>
+    <h1 class="fw-bold mb-1">Dashboard</h1>
+    <p class="text-muted mb-0">Dein Fortschritt im Überblick</p>
   </div>
-  <a href="/eintrag/neu" class="btn-primary">+ Eintrag hinzufügen</a>
+  <a href="/eintrag/neu" class="btn btn-dark">
+    <i class="bi bi-plus-lg me-1"></i> Eintrag hinzufügen
+  </a>
 </div>
 
 {#if data.bereiche.length === 0}
-  <div class="leer">
-    <p>Noch keine Bereiche angelegt.</p>
-    <a href="/bereiche/neu" class="btn-primary" style="display:inline-block; margin-top:12px;">
-      Ersten Bereich erstellen
-    </a>
+  <div class="card border-0 shadow-sm text-center py-5">
+    <div class="card-body">
+      <i class="bi bi-grid-3x3-gap display-4 text-muted mb-3"></i>
+      <p class="text-muted fs-5">Noch keine Bereiche angelegt.</p>
+      <a href="/bereiche/neu" class="btn btn-dark mt-2">
+        <i class="bi bi-plus-lg me-1"></i> Ersten Bereich erstellen
+      </a>
+    </div>
   </div>
 {:else}
-  <div class="karten-grid">
+  <div class="row g-3 mb-4">
     {#each data.bereiche as bereich}
-      <BereichKarte
-        {bereich}
-        wert={eintraegeProBereich(bereich._id).toString()}
-        einheit="Einträge"
-        fortschritt={Math.min(eintraegeProBereich(bereich._id) * 10, 100)}
-      />
-    {/each}
-    <a href="/bereiche/neu" class="karte-add">
-      <span>+</span>
-      <span>Neuen Bereich erstellen</span>
-    </a>
-  </div>
-{/if}
-
-{#if data.eintraege.length > 0}
-  <div class="section-header"><h2>Letzte Aktivitäten</h2></div>
-  <div class="card">
-    {#each data.eintraege as eintrag}
-      <div class="aktivitaet">
-        <span class="titel">{eintrag.titel}</span>
-        <span class="datum">{new Date(eintrag.datum).toLocaleDateString('de-CH')}</span>
+      <div class="col-md-4">
+        <BereichKarte
+          {bereich}
+          wert={eintraegeProBereich(bereich._id).toString()}
+          einheit="Einträge"
+          fortschritt={Math.min(eintraegeProBereich(bereich._id) * 10, 100)}
+        />
       </div>
     {/each}
+    <div class="col-md-4">
+      <a href="/bereiche/neu" class="card border-dashed h-100 text-decoration-none d-flex align-items-center justify-content-center text-muted"
+         style="min-height:140px; border:2px dashed #dee2e6 !important;">
+        <div class="text-center">
+          <i class="bi bi-plus-circle fs-3 mb-2 d-block"></i>
+          <span class="small">Neuen Bereich erstellen</span>
+        </div>
+      </a>
+    </div>
   </div>
-{/if}
 
-<style>
-  .header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px; }
-  h1 { font-size:26px; font-weight:600; letter-spacing:-0.5px; }
-  .subtitle { color:#6A6860; font-size:14px; margin-top:4px; }
-  .karten-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
-  .karte-add {
-    border:1.5px dashed rgba(0,0,0,0.13); border-radius:12px;
-    padding:20px; display:flex; flex-direction:column; align-items:center;
-    justify-content:center; gap:8px; color:#9A9890;
-    text-decoration:none; font-size:13px; font-weight:500;
-    min-height:148px; transition:all 0.12s;
-  }
-  .karte-add:hover { border-color:#6A6860; color:#6A6860; background:white; }
-  .karte-add span:first-child { font-size:26px; font-weight:300; }
-  .leer { text-align:center; padding:60px; color:#6A6860; }
-  .section-header { margin:24px 0 12px; }
-  h2 { font-size:13px; font-weight:600; color:#9A9890; text-transform:uppercase; letter-spacing:0.07em; }
-  .card { background:white; border:0.5px solid rgba(0,0,0,0.07); border-radius:12px; padding:4px 24px; }
-  .aktivitaet { display:flex; justify-content:space-between; padding:12px 0; border-bottom:0.5px solid rgba(0,0,0,0.07); }
-  .aktivitaet:last-child { border-bottom:none; }
-  .titel { font-size:13px; font-weight:500; }
-  .datum { font-size:11px; color:#9A9890; }
-  .btn-primary {
-    padding:9px 18px; background:#1C1B18; color:white;
-    border:none; border-radius:8px; font-size:13px; font-weight:500;
-    cursor:pointer; text-decoration:none;
-  }
-</style>
+  {#if data.eintraege.length > 0}
+    <h6 class="text-uppercase text-muted fw-semibold mb-3" style="font-size:11px;letter-spacing:.08em;">Letzte Aktivitäten</h6>
+    <div class="card border-0 shadow-sm">
+      <ul class="list-group list-group-flush">
+        {#each data.eintraege as e}
+          {@const bereich = data.bereiche.find(b => b._id === e.bereichId)}
+          <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+            <div class="d-flex align-items-center gap-2">
+              {#if bereich}
+                <span class="rounded-2 d-flex align-items-center justify-content-center"
+                      style="width:28px;height:28px;background:{bereich.farbeHell};font-size:15px;flex-shrink:0;">
+                  {bereich.icon}
+                </span>
+              {/if}
+              <div>
+                <div class="fw-medium small">{e.titel}</div>
+                {#if bereich}<div class="text-muted" style="font-size:11px;">{bereich.name}</div>{/if}
+              </div>
+            </div>
+            <span class="text-muted small">{new Date(e.datum).toLocaleDateString('de-CH')}</span>
+          </li>
+        {/each}
+      </ul>
+    </div>
+  {/if}
+{/if}
