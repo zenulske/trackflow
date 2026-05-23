@@ -1,7 +1,6 @@
-import { getDB, ObjectId } from '$lib/server/db.js';
-import { fail } from '@sveltejs/kit';
-import bcrypt from 'bcryptjs';
 import { fail, redirect } from '@sveltejs/kit';
+import { getDB, ObjectId } from '$lib/server/db.js';
+import bcrypt from 'bcryptjs';
 
 export async function load({ locals }) {
   return { user: locals.user };
