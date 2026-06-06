@@ -1,17 +1,44 @@
 <script>
-  import { goto } from '$app/navigation';
+  import { goto, invalidateAll } from '$app/navigation';
   let { data } = $props();
-  let bestaetigen = false;
 
-  async function loeschen() {
-    if (!bestaetigen) { bestaetigen = true; return; }
-    await fetch(`/api/bereiche/${data.bereich._id}`, { method: 'DELETE' });
-    goto('/dashboard');
+  let zuLoeschen        = $state(null);   // Eintrag der gelöscht werden soll
+  let bereichLoeschen   = $state(false);  // Modal für Bereich-Löschen
+  let laden             = $state(false);
+
+  let einheit  = $derived(data.bereich.zielEinheit || (data.bereich.zielTyp === 'minuten' ? 'Min.' : 'Einträge'));
+  let zeitraum = $derived(data.bereich.zielZeitraum === 'monat' ? 'Monat' : 'Woche');
+
+  // --- Eintrag löschen ---
+  function eintragModalOeffnen(eintrag) { zuLoeschen = eintrag; }
+  function eintragModalSchliessen() { if (!laden) zuLoeschen = null; }
+
+  async function eintragLoeschenBestaetigt() {
+    if (!zuLoeschen) return;
+    laden = true;
+    const res = await fetch(`/api/eintraege/${zuLoeschen._id}`, { method: 'DELETE' });
+    laden = false;
+    if (res.ok) {
+      zuLoeschen = null;
+      await invalidateAll();
+    }
+  }
+
+  // --- Bereich löschen ---
+  function bereichModalOeffnen() { bereichLoeschen = true; }
+  function bereichModalSchliessen() { if (!laden) bereichLoeschen = false; }
+
+  async function bereichLoeschenBestaetigt() {
+    laden = true;
+    const res = await fetch(`/api/bereiche/${data.bereich._id}`, { method: 'DELETE' });
+    laden = false;
+    if (res.ok) goto('/dashboard');
   }
 </script>
 
 <svelte:head><title>{data.bereich.name} – TrackFlow</title></svelte:head>
 
+<!-- Header -->
 <div class="d-flex justify-content-between align-items-start mb-4">
   <div class="d-flex align-items-center gap-3">
     <span class="rounded-3 d-flex align-items-center justify-content-center"
@@ -20,47 +47,49 @@
     </span>
     <div>
       <h1 class="fw-bold mb-0">{data.bereich.name}</h1>
-      {#if data.bereich.zielAnzahl}
-        <p class="text-muted mb-0 small">
-          Ziel: {data.bereich.zielAnzahl} Einträge / {data.bereich.zielZeitraum === 'monat' ? 'Monat' : 'Woche'}
-        </p>
-      {:else}
-        <p class="text-muted mb-0 small">Kein Ziel definiert</p>
-      {/if}
+      <p class="text-muted mb-0 small">
+        {#if data.bereich.zielAnzahl}
+          Ziel: {data.bereich.zielAnzahl} {einheit} / {zeitraum}
+        {:else}
+          Kein Ziel definiert
+        {/if}
+      </p>
     </div>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 flex-wrap justify-content-end">
     <a href="/eintrag/neu" class="btn btn-outline-secondary btn-sm">
       <i class="bi bi-plus-lg me-1"></i> Eintrag
     </a>
-    {#if bestaetigen}
-      <button class="btn btn-danger btn-sm" onclick={loeschen}>Wirklich löschen?</button>
-    {:else}
-      <button class="btn btn-outline-danger btn-sm" onclick={() => bestaetigen = true}>
-        <i class="bi bi-trash"></i>
-      </button>
-    {/if}
+    <a href="/bereiche/{data.bereich._id}/bearbeiten" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-pencil me-1"></i> Bearbeiten
+    </a>
+    <button class="btn btn-outline-danger btn-sm" onclick={bereichModalOeffnen}>
+      Löschen
+    </button>
   </div>
 </div>
 
-<!-- Fortschritt dieser Periode -->
+<!-- Fortschritt -->
 {#if data.bereich.zielAnzahl}
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-2">
-        <span class="fw-medium">
-          Fortschritt diese {data.bereich.zielZeitraum === 'monat' ? 'Monat' : 'Woche'}
-        </span>
+        <span class="fw-medium">Fortschritt diese {zeitraum}</span>
         <span class="fw-bold" style="color:{data.bereich.farbe};">
-          {data.fortschritt.aktuell} / {data.bereich.zielAnzahl}
+          {data.fortschritt.aktuell} / {data.bereich.zielAnzahl} {einheit}
         </span>
       </div>
       <div class="progress mb-1" style="height:8px;">
-        <div class="progress-bar" role="progressbar"
+        <div class="progress-bar"
              style="width:{data.fortschritt.prozent}%;background:{data.bereich.farbe};">
         </div>
       </div>
-      <div class="text-muted small">{data.fortschritt.prozent}% erreicht</div>
+      <div class="d-flex justify-content-between mt-1">
+        <span class="text-muted small">{data.fortschritt.prozent}% erreicht</span>
+        {#if data.fortschritt.prozent >= 100}
+          <span class="text-success small fw-semibold">🎉 Ziel erreicht!</span>
+        {/if}
+      </div>
     </div>
   </div>
 {/if}
@@ -85,7 +114,9 @@
 
 <!-- Einträge -->
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h6 class="text-uppercase text-muted fw-semibold mb-0" style="font-size:11px;letter-spacing:.08em;">Einträge</h6>
+  <h6 class="text-uppercase text-muted fw-semibold mb-0" style="font-size:11px;letter-spacing:.08em;">
+    Einträge
+  </h6>
   <a href="/eintrag/neu" class="btn btn-dark btn-sm">
     <i class="bi bi-plus-lg me-1"></i> Neu
   </a>
@@ -100,18 +131,121 @@
     </div>
   {:else}
     <ul class="list-group list-group-flush">
-      {#each data.eintraege as e}
-        <li class="list-group-item d-flex justify-content-between align-items-start py-3">
-          <div>
+      {#each data.eintraege as e (e._id)}
+        <li class="list-group-item d-flex justify-content-between align-items-center py-3 gap-3">
+          <div class="flex-grow-1 overflow-hidden">
             <div class="fw-medium">{e.titel}</div>
-            {#if e.notizen}<div class="text-muted small">{e.notizen}</div>{/if}
+            {#if e.notizen}<div class="text-muted small text-truncate">{e.notizen}</div>{/if}
           </div>
-          <div class="text-end text-nowrap ms-3">
-            <div class="text-muted small">{new Date(e.datum).toLocaleDateString('de-CH')}</div>
-            {#if e.dauer}<div class="text-muted" style="font-size:11px;">{e.dauer} min</div>{/if}
+
+          <div class="text-end text-nowrap small text-muted">
+            <div>{new Date(e.datum).toLocaleDateString('de-CH')}</div>
+            {#if e.dauer || e.wert}
+              <div style="font-size:11px;">
+                {#if e.wert}{e.wert} {data.bereich.zielEinheit || ''}{/if}
+                {#if e.wert && e.dauer} · {/if}
+                {#if e.dauer}{e.dauer} min{/if}
+              </div>
+            {/if}
           </div>
+
+          <button class="btn btn-sm btn-outline-danger"
+                  onclick={() => eintragModalOeffnen(e)}>
+            Löschen
+          </button>
         </li>
       {/each}
     </ul>
   {/if}
 </div>
+
+<!-- Modal: Eintrag löschen -->
+{#if zuLoeschen}
+  <div class="modal-backdrop"
+       onclick={eintragModalSchliessen}
+       role="button" tabindex="-1"
+       onkeydown={(e) => e.key === 'Escape' && eintragModalSchliessen()}>
+  </div>
+  <div class="modal-dialog-custom" role="dialog" aria-modal="true">
+    <div class="card border-0 shadow-lg">
+      <div class="card-body p-4">
+        <h5 class="fw-bold mb-2">Eintrag löschen?</h5>
+        <p class="text-muted mb-4">
+          Möchtest du den Eintrag <strong>«{zuLoeschen.titel}»</strong> wirklich löschen?
+          Diese Aktion kann nicht rückgängig gemacht werden.
+        </p>
+        <div class="d-flex gap-2 justify-content-end">
+          <button class="btn btn-outline-secondary" onclick={eintragModalSchliessen} disabled={laden}>
+            Abbrechen
+          </button>
+          <button class="btn btn-danger" onclick={eintragLoeschenBestaetigt} disabled={laden}>
+            {#if laden}<span class="spinner-border spinner-border-sm me-2"></span>{/if}
+            Ja, löschen
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Modal: Bereich löschen -->
+{#if bereichLoeschen}
+  <div class="modal-backdrop"
+       onclick={bereichModalSchliessen}
+       role="button" tabindex="-1"
+       onkeydown={(e) => e.key === 'Escape' && bereichModalSchliessen()}>
+  </div>
+  <div class="modal-dialog-custom" role="dialog" aria-modal="true">
+    <div class="card border-0 shadow-lg">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="rounded-2 d-flex align-items-center justify-content-center"
+                style="width:36px;height:36px;background:{data.bereich.farbeHell};font-size:20px;">
+            {data.bereich.icon}
+          </span>
+          <h5 class="fw-bold mb-0">Bereich löschen?</h5>
+        </div>
+        <p class="text-muted mb-2">
+          Möchtest du den Bereich <strong>«{data.bereich.name}»</strong> wirklich löschen?
+        </p>
+        {#if data.eintraege.length > 0}
+          <div class="alert alert-warning py-2 small mb-4">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            <strong>Achtung:</strong> Alle {data.eintraege.length} Einträge dieses Bereichs werden ebenfalls gelöscht.
+            Diese Aktion kann nicht rückgängig gemacht werden.
+          </div>
+        {:else}
+          <p class="text-muted small mb-4">Diese Aktion kann nicht rückgängig gemacht werden.</p>
+        {/if}
+        <div class="d-flex gap-2 justify-content-end">
+          <button class="btn btn-outline-secondary" onclick={bereichModalSchliessen} disabled={laden}>
+            Abbrechen
+          </button>
+          <button class="btn btn-danger" onclick={bereichLoeschenBestaetigt} disabled={laden}>
+            {#if laden}<span class="spinner-border spinner-border-sm me-2"></span>{/if}
+            Ja, löschen
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<style>
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1040; animation: fadeIn .15s ease;
+  }
+  .modal-dialog-custom {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%; max-width: 460px; z-index: 1050;
+    animation: slideIn .2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translate(-50%, -48%); }
+    to   { opacity: 1; transform: translate(-50%, -50%); }
+  }
+</style>
