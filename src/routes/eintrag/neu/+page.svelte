@@ -25,13 +25,6 @@
   </a>
 </div>
 
-<!-- 🟡 DEBUG — zeigt was die DB für diesen Bereich gespeichert hat -->
-<div class="alert alert-warning small mb-3" style="max-width:520px;">
-  <strong>Debug:</strong>
-  <code>zielTyp: "{gewaehltBereich?.zielTyp ?? 'undefined'}"</code> ·
-  <code>zielEinheit: "{gewaehltBereich?.zielEinheit ?? 'undefined'}"</code> ·
-  <code>zielAnzahl: {gewaehltBereich?.zielAnzahl ?? 'null'}</code>
-</div>
 
 <div class="card border-0 shadow-sm" style="max-width:520px;">
   <div class="card-body p-4">

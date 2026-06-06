@@ -6,7 +6,7 @@ export async function load({ params, locals }) {
   const db = await getDB();
 
   const bereich = await db.collection('bereiche').findOne({
-    _id:    new ObjectId(params.id),
+    _id: new ObjectId(params.id),
     userId: new ObjectId(locals.user.id)
   });
   if (!bereich) throw error(404, 'Bereich nicht gefunden.');
@@ -19,7 +19,6 @@ export async function load({ params, locals }) {
   const fortschritt = await berechnefortschritt(db, bereich, start);
   const verlauf = await berechneVerlauf(db, bereich, 6);
 
-  // Gesamt-Statistik (alle Zeit) berechnen
   let wertSumme = 0;
   if (bereich.zielTyp === 'wert') {
     const result = await db.collection('eintraege').aggregate([
@@ -35,9 +34,9 @@ export async function load({ params, locals }) {
     bereich: { ...bereich, _id: bereich._id.toString(), userId: bereich.userId.toString() },
     eintraege: eintraege.map(e => ({
       ...e,
-      _id:       e._id.toString(),
+      _id: e._id.toString(),
       bereichId: e.bereichId.toString(),
-      userId:    e.userId?.toString()
+      userId: e.userId?.toString()
     })),
     fortschritt,
     verlauf,
