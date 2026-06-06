@@ -1,5 +1,5 @@
 <script>
-  import { goto } from '$app/navigation';
+  import { goto, invalidateAll } from '$app/navigation';
 
   const icons  = ['🏃','📚','💼','🎯','💡','🎨','🌱','💪','🧠','📊','🎵','✈️','🍎','💰','🤝','🔬','🏋️','📝','🌍','⚽'];
   const farben = [
@@ -15,16 +15,15 @@
   let zielAnzahl   = $state('');
   let zielZeitraum = $state('woche');
   let zielTyp      = $state('eintraege');
-  let zielEinheit  = $state('Einträge');  // wird automatisch je nach Typ angepasst
+  let zielEinheit  = $state('Einträge');
   let laden        = $state(false);
   let fehler       = $state('');
 
-  // Beim Typ-Wechsel: Einheit auf sinnvollen Default setzen
   function setzeTyp(typ) {
     zielTyp = typ;
     if (typ === 'eintraege')      zielEinheit = 'Einträge';
     else if (typ === 'minuten')   zielEinheit = 'Min.';
-    else if (typ === 'wert')      zielEinheit = '';  // User muss selbst eingeben
+    else if (typ === 'wert')      zielEinheit = '';
   }
 
   async function speichern() {
@@ -50,7 +49,10 @@
       })
     });
     laden = false;
-    if (res.ok) goto('/dashboard');
+    if (res.ok) {
+      await invalidateAll();   // Sidebar aktualisieren
+      goto('/dashboard');
+    }
     else fehler = 'Fehler beim Speichern.';
   }
 </script>
@@ -107,7 +109,6 @@
     <div class="border rounded-3 p-3 mb-4">
       <label class="form-label fw-medium small mb-3">Ziel (optional)</label>
 
-      <!-- Typ -->
       <div class="mb-3">
         <label class="form-label small text-muted">Was wird gemessen?</label>
         <div class="d-flex gap-2 flex-wrap">
@@ -129,37 +130,29 @@
         </div>
       </div>
 
-      <!-- Zielwert + Einheit -->
       <div class="row g-2 mb-3">
         <div class="col">
           <label class="form-label small text-muted">Zielwert</label>
           <input type="number" class="form-control" bind:value={zielAnzahl}
                  placeholder={zielTyp === 'minuten' ? '120' : zielTyp === 'wert' ? '30' : '5'} min="1" />
         </div>
-
         <div class="col">
           <label class="form-label small text-muted">Einheit</label>
 
           {#if zielTyp === 'eintraege'}
-            <!-- Fix: einfach Einträge, kein Eingabefeld -->
             <input type="text" class="form-control bg-light" value="Einträge" disabled />
-
           {:else if zielTyp === 'minuten'}
-            <!-- Dropdown: Min. oder Std. -->
             <select class="form-select" bind:value={zielEinheit}>
               <option value="Min.">Minuten</option>
               <option value="Std.">Stunden</option>
             </select>
-
           {:else if zielTyp === 'wert'}
-            <!-- Freier Text -->
             <input type="text" class="form-control" bind:value={zielEinheit}
                    placeholder="z.B. km, Seiten" />
           {/if}
         </div>
       </div>
 
-      <!-- Zeitraum -->
       <div class="mb-2">
         <label class="form-label small text-muted">Zeitraum</label>
         <select class="form-select" bind:value={zielZeitraum}>

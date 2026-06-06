@@ -15,9 +15,21 @@ export async function load({ params, locals }) {
     .find({ bereichId: new ObjectId(params.id) })
     .sort({ datum: -1 }).toArray();
 
-  const start = zeitraumStart(bereich.zielZeitraum);
+  const start = zeitraumStart(bereich.zielZeitraum || 'woche');
   const fortschritt = await berechnefortschritt(db, bereich, start);
   const verlauf = await berechneVerlauf(db, bereich, 6);
+
+  // Gesamt-Statistik (alle Zeit) berechnen
+  let wertSumme = 0;
+  if (bereich.zielTyp === 'wert') {
+    const result = await db.collection('eintraege').aggregate([
+      { $match: { bereichId: new ObjectId(params.id) } },
+      { $group: { _id: null, total: { $sum: '$wert' } } }
+    ]).toArray();
+    wertSumme = result[0]?.total || 0;
+  }
+
+  const minutenSumme = eintraege.reduce((s, e) => s + (e.dauer || 0), 0);
 
   return {
     bereich: { ...bereich, _id: bereich._id.toString(), userId: bereich.userId.toString() },
@@ -28,6 +40,10 @@ export async function load({ params, locals }) {
       userId:    e.userId?.toString()
     })),
     fortschritt,
-    verlauf
+    verlauf,
+    stats: {
+      wertSumme,
+      stundenSumme: Math.round((minutenSumme / 60) * 10) / 10
+    }
   };
 }
