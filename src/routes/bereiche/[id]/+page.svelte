@@ -2,14 +2,19 @@
   import { goto, invalidateAll } from '$app/navigation';
   let { data } = $props();
 
-  let zuLoeschen        = $state(null);   // Eintrag der gelöscht werden soll
-  let bereichLoeschen   = $state(false);  // Modal für Bereich-Löschen
-  let laden             = $state(false);
+  let zuLoeschen      = $state(null);
+  let bereichLoeschen = $state(false);
+  let laden           = $state(false);
 
   let einheit  = $derived(data.bereich.zielEinheit || (data.bereich.zielTyp === 'minuten' ? 'Min.' : 'Einträge'));
   let zeitraum = $derived(data.bereich.zielZeitraum === 'monat' ? 'Monat' : 'Woche');
 
-  // --- Eintrag löschen ---
+  // Höchster Wert im Verlauf für die Skalierung
+  let maxWert = $derived(Math.max(
+    data.bereich.zielAnzahl ?? 0,
+    ...data.verlauf.map(v => v.aktuell)
+  ) || 1);
+
   function eintragModalOeffnen(eintrag) { zuLoeschen = eintrag; }
   function eintragModalSchliessen() { if (!laden) zuLoeschen = null; }
 
@@ -24,7 +29,6 @@
     }
   }
 
-  // --- Bereich löschen ---
   function bereichModalOeffnen() { bereichLoeschen = true; }
   function bereichModalSchliessen() { if (!laden) bereichLoeschen = false; }
 
@@ -69,7 +73,7 @@
   </div>
 </div>
 
-<!-- Fortschritt -->
+<!-- Fortschritt aktuelle Periode -->
 {#if data.bereich.zielAnzahl}
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-body">
@@ -89,6 +93,69 @@
         {#if data.fortschritt.prozent >= 100}
           <span class="text-success small fw-semibold">🎉 Ziel erreicht!</span>
         {/if}
+      </div>
+    </div>
+  </div>
+
+  <!-- Verlaufs-Chart -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-semibold mb-0">
+          Verlauf der letzten 6 {data.bereich.zielZeitraum === 'monat' ? 'Monate' : 'Wochen'}
+        </h6>
+        <span class="badge bg-light text-muted small">
+          Ziel: {data.bereich.zielAnzahl} {einheit}
+        </span>
+      </div>
+
+      <!-- Balken-Diagramm -->
+      <div class="chart-container">
+        {#each data.verlauf as v (v.start)}
+          <div class="chart-spalte" title="{v.aktuell} {einheit} – {v.prozent}%">
+            <!-- Wert über dem Balken -->
+            <div class="chart-wert" class:erreicht={v.erreicht}>
+              {v.aktuell}
+            </div>
+
+            <!-- Balken-Bereich mit Ziel-Linie -->
+            <div class="chart-balken-bereich">
+              <!-- Ziel-Linie -->
+              <div class="chart-ziel-linie"
+                   style="bottom:{(data.bereich.zielAnzahl / maxWert) * 100}%;">
+              </div>
+
+              <!-- Eigentlicher Balken -->
+              <div class="chart-balken"
+                   class:aktuell={v.istAktuell}
+                   style="height:{(v.aktuell / maxWert) * 100}%;
+                          background:{v.erreicht ? data.bereich.farbe : data.bereich.farbeHell};
+                          border-color:{data.bereich.farbe};">
+              </div>
+            </div>
+
+            <!-- Datum unter dem Balken -->
+            <div class="chart-label" class:aktuell={v.istAktuell}>
+              {v.label}
+            </div>
+          </div>
+        {/each}
+      </div>
+
+      <!-- Legende -->
+      <div class="d-flex justify-content-center gap-3 mt-3">
+        <div class="d-flex align-items-center gap-1 small text-muted">
+          <span style="display:inline-block;width:14px;height:10px;background:{data.bereich.farbe};border-radius:2px;"></span>
+          Ziel erreicht
+        </div>
+        <div class="d-flex align-items-center gap-1 small text-muted">
+          <span style="display:inline-block;width:14px;height:10px;background:{data.bereich.farbeHell};border:1px solid {data.bereich.farbe};border-radius:2px;"></span>
+          Ziel nicht erreicht
+        </div>
+        <div class="d-flex align-items-center gap-1 small text-muted">
+          <span style="display:inline-block;width:14px;height:2px;background:#9A9890;border-top:1px dashed #6A6860;"></span>
+          Ziel-Linie
+        </div>
       </div>
     </div>
   </div>
@@ -137,7 +204,6 @@
             <div class="fw-medium">{e.titel}</div>
             {#if e.notizen}<div class="text-muted small text-truncate">{e.notizen}</div>{/if}
           </div>
-
           <div class="text-end text-nowrap small text-muted">
             <div>{new Date(e.datum).toLocaleDateString('de-CH')}</div>
             {#if e.dauer || e.wert}
@@ -148,7 +214,6 @@
               </div>
             {/if}
           </div>
-
           <button class="btn btn-sm btn-outline-danger"
                   onclick={() => eintragModalOeffnen(e)}>
             Löschen
@@ -161,8 +226,7 @@
 
 <!-- Modal: Eintrag löschen -->
 {#if zuLoeschen}
-  <div class="modal-backdrop"
-       onclick={eintragModalSchliessen}
+  <div class="modal-backdrop" onclick={eintragModalSchliessen}
        role="button" tabindex="-1"
        onkeydown={(e) => e.key === 'Escape' && eintragModalSchliessen()}>
   </div>
@@ -190,8 +254,7 @@
 
 <!-- Modal: Bereich löschen -->
 {#if bereichLoeschen}
-  <div class="modal-backdrop"
-       onclick={bereichModalSchliessen}
+  <div class="modal-backdrop" onclick={bereichModalSchliessen}
        role="button" tabindex="-1"
        onkeydown={(e) => e.key === 'Escape' && bereichModalSchliessen()}>
   </div>
@@ -232,6 +295,68 @@
 {/if}
 
 <style>
+  /* === Chart === */
+  .chart-container {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    height: 180px;
+    padding: 0 4px;
+  }
+  .chart-spalte {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    cursor: default;
+  }
+  .chart-wert {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6A6860;
+    margin-bottom: 4px;
+    height: 18px;
+  }
+  .chart-wert.erreicht { color: #1C1B18; }
+  .chart-balken-bereich {
+    flex: 1;
+    width: 100%;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    border-bottom: 1px solid #E8E6E2;
+  }
+  .chart-balken {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    border: 1px solid;
+    transition: height .3s ease;
+    min-height: 2px;
+  }
+  .chart-balken.aktuell {
+    box-shadow: 0 0 0 2px white, 0 0 0 3px currentColor;
+  }
+  .chart-ziel-linie {
+    position: absolute;
+    left: -4px;
+    right: -4px;
+    height: 0;
+    border-top: 1.5px dashed #9A9890;
+    z-index: 1;
+  }
+  .chart-label {
+    font-size: 11px;
+    color: #9A9890;
+    margin-top: 6px;
+    font-weight: 500;
+  }
+  .chart-label.aktuell {
+    color: #1C1B18;
+    font-weight: 700;
+  }
+
+  /* === Modals === */
   .modal-backdrop {
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.5);
